@@ -15,5 +15,6 @@
     "typescript": "^5.0.0"
   },
   "license": "MIT",
-  "type": "module"
+  "type": "module",
+  "keywords": ["bun-plugin", "bun-copy-plugin", "copy-plugin", "copy", "copy-bun-plugin", "bun-plugin-copy"]
 }
