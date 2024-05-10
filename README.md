@@ -24,7 +24,7 @@ import { Copy } from "@alik6/bun-copy-plugin";
 
 build({
     entrypoints: [],
-    // If not explicitly set in 'to', defaults to 'outdir' if defined other 'dist/'.
+    // If not explicitly set in 'to', defaults to 'outdir' if defined otherwise 'dist/'.
     outdir: 'out',
     plugins: [
         Copy({
