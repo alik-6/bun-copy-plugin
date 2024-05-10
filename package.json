@@ -1,0 +1,19 @@
+{
+  "name": "@alik6/bun-copy-plugin",
+  "version": "0.0.1",
+  "author": {
+    "name": "alik6",
+    "url": "https://github.com/alik-6/bun-copy-plugin",
+    "email": "authastefard@proton.me"
+  },
+  "main": "index.ts",
+  "module": "index.ts",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "license": "MIT",
+  "type": "module"
+}
