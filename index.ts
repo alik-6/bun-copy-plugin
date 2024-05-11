@@ -1,8 +1,7 @@
 import { type BunPlugin, type PluginBuilder } from "bun";
 import { exists, mkdir, readdir } from "node:fs/promises";
-import { join } from "node:path";
+import { join, parse } from "node:path";
 import type { Dirent } from "node:fs";
-
 export type CopyPluginConfig = {
   assets: { from: string; to?: string }[];
   verify: boolean;
@@ -18,9 +17,9 @@ const verifyAssets = async (config: CopyPluginConfig) => {
 };
 
 const handleFile = (asset: { to: string; from: string }) => {
-  const file = Bun.file(asset.from);
-  if (asset.to.endsWith("/")) asset.to += `/${file.name}`;
-  Bun.write(asset.to, file).catch((e) => console.error(e));
+  const file = parse(asset.from);
+  if (asset.to.endsWith("/")) asset.to += `/${file.base}`;
+  Bun.write(asset.to, Bun.file(asset.from)).catch((e) => console.error(e));
 };
 
 const handleDir = (asset: { to: string; from: string }) =>
@@ -52,8 +51,7 @@ const CopyPlugin = (config: CopyPluginConfig): BunPlugin => {
     async setup(build) {
       if (config.verify) {
         const isVerified = await verifyAssets(config);
-        if (!isVerified)
-          throw Error(`[${this.name}] Failed to verify assets.`);
+        if (!isVerified) throw Error(`[${this.name}] Failed to verify assets.`);
       }
       config.assets.forEach((asset) => {
         const to = asset.to ? asset.to : build.config.outdir ?? "dist/";
