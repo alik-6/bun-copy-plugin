@@ -2,6 +2,7 @@ import { type BunPlugin, type PluginBuilder } from "bun";
 import { exists, mkdir, readdir } from "node:fs/promises";
 import { join, parse } from "node:path";
 import type { Dirent } from "node:fs";
+
 export type CopyPluginConfig = {
   assets: { from: string; to?: string }[];
   verify: boolean;
@@ -22,7 +23,7 @@ const handleFile = (asset: { to: string; from: string }) => {
   Bun.write(asset.to, Bun.file(asset.from)).catch((e) => console.error(e));
 };
 
-const handleDir = (asset: { to: string; from: string }) =>
+const handleDir = (asset: { to: string; from: string }) => {
   exists(asset.to).then(async (exists) => {
     if (!exists) await mkdir(asset.to!, { recursive: true });
     readdir(asset.from, { withFileTypes: true }).then((files: Dirent[]) => {
@@ -30,7 +31,7 @@ const handleDir = (asset: { to: string; from: string }) =>
         const to = join(asset.to, file.name);
         const from = join(asset.from!, file.name);
         if (file.isDirectory()) {
-          await handleDir({ to, from });
+          handleDir({ to, from });
         } else {
           handleFile({ to, from });
         }
@@ -38,7 +39,7 @@ const handleDir = (asset: { to: string; from: string }) =>
       Promise.all(promises).then(() => {});
     });
   });
-
+};
 /**
  * @description A utility plugin for copying files and directories during the build process using Bun.
  * @param {CopyPluginConfig} config - The configuration object for the Copy Plugin.
