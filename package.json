@@ -1,6 +1,6 @@
 {
   "name": "@alik6/bun-copy-plugin",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "author": {
     "name": "alik6",
     "url": "https://github.com/alik-6/bun-copy-plugin",
@@ -16,5 +16,5 @@
   },
   "license": "MIT",
   "type": "module",
-  "keywords": ["bun-plugin", "bun-copy-plugin", "copy-plugin", "copy", "copy-bun-plugin", "bun-plugin-copy"]
+  "keywords": ["bun", "bunjs", "bun-plugin", "bun-copy-plugin", "copy-plugin", "copy", "copy-bun-plugin", "bun-plugin-copy"]
 }
