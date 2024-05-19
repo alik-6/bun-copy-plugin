@@ -8,8 +8,8 @@ export type CopyPluginConfig = {
   verify: boolean;
 };
 
-const verifyAssets = async (config: CopyPluginConfig) => {
-  const assetChecks = config.assets.map(
+export const verifyAssets = async (assets: CopyPluginConfig["assets"]) => {
+  const assetChecks = assets.map(
     async (asset) => asset.from && (await exists(asset.from))
   );
 
@@ -17,13 +17,13 @@ const verifyAssets = async (config: CopyPluginConfig) => {
   return results.every((result) => result);
 };
 
-const handleFile = (asset: { to: string; from: string }) => {
+export const handleFile = (asset: { to: string; from: string }) => {
   const file = parse(asset.from);
   if (asset.to.endsWith("/")) asset.to += `/${file.base}`;
   Bun.write(asset.to, Bun.file(asset.from)).catch((e) => console.error(e));
 };
 
-const handleDir = (asset: { to: string; from: string }) => {
+export const handleDir = (asset: { to: string; from: string }) => {
   exists(asset.to).then(async (exists) => {
     if (!exists) await mkdir(asset.to!, { recursive: true });
     readdir(asset.from, { withFileTypes: true }).then((files: Dirent[]) => {
@@ -40,19 +40,28 @@ const handleDir = (asset: { to: string; from: string }) => {
     });
   });
 };
+
 /**
  * @description A utility plugin for copying files and directories during the build process using Bun.
  * @param {CopyPluginConfig} config - The configuration object for the Copy Plugin.
  * @returns {BunPlugin} - The Bun plugin instance.
  */
+
 const CopyPlugin = (config: CopyPluginConfig): BunPlugin => {
   return {
     target: undefined,
     name: "@alik6/bun-copy-plugin",
     async setup(build) {
       if (config.verify) {
-        const isVerified = await verifyAssets(config);
-        if (!isVerified) throw Error(`[${this.name}] Failed to verify assets.`);
+        try {
+          const isVerified = await verifyAssets(config.assets);
+          if (!isVerified) {
+            console.log(`Failed to verify assets.`);
+          }
+        }
+        catch (e) {
+          console.error(e)
+        }
       }
       config.assets.forEach((asset) => {
         const to = asset.to ? asset.to : build.config.outdir ?? "dist/";
