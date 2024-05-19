@@ -15,13 +15,15 @@ export interface CopyPluginConfig {
 }
 
 let verbose = false;
-
+const tag = "@alik6/bun-copy-plugin";
 const verboseLog = (message: any) => {
   if (verbose) {
-    console.log(message);
+    console.log(`[${tag}] ${message}`);
   }
 };
-
+const handleError = (error: Error | any) => {
+  console.error(`[${tag}] ${error.message}`);
+};
 export const verifyAssets = async (assets: AssetConfig[]): Promise<boolean> => {
   const assetChecks = assets.map(async (asset) => ({
     verified: asset.from && (await exists(asset.from)),
@@ -30,7 +32,7 @@ export const verifyAssets = async (assets: AssetConfig[]): Promise<boolean> => {
 
   const results = await Promise.all(assetChecks);
   return results.every((result) => {
-    if (!result.verified) verboseLog(`Failed to verify ${result.asset.from}`);
+    if (!result.verified) console.log(`Failed to verify ${result.asset.from}`);
     return result.verified;
   });
 };
@@ -42,7 +44,7 @@ export const handleFile = async (asset: AssetConfig): Promise<void> => {
     await Bun.write(to, Bun.file(asset.from));
     verboseLog(`Copied file ${file.base} ${asset.from} => ${to}`);
   } catch (error) {
-    console.error(error);
+    handleError(error);
   }
 };
 
@@ -63,7 +65,7 @@ export const handleDir = async (asset: AssetConfig): Promise<void> => {
       })
     );
   } catch (error) {
-    console.error(error);
+    handleError(error);
   }
 };
 /**
@@ -71,7 +73,9 @@ export const handleDir = async (asset: AssetConfig): Promise<void> => {
  * @param {CopyPluginConfig} config - The configuration object for the Copy Plugin.
  * @returns {BunPlugin} - The Bun plugin instance.
  */
-const CopyPlugin = (config: CopyPluginConfig): BunPlugin => {
+const CopyPlugin = (
+  config: CopyPluginConfig = { verbose: false, verify: true, assets: [] }
+): BunPlugin => {
   return {
     target: undefined,
     name: "@alik6/bun-copy-plugin",
@@ -82,8 +86,7 @@ const CopyPlugin = (config: CopyPluginConfig): BunPlugin => {
       if (config.verify) {
         const isVerified = await verifyAssets(config.assets);
         if (!isVerified) {
-          console.log(`Failed to verify assets.`);
-          return
+          return;
         }
       }
       for (const asset of config.assets) {
@@ -97,7 +100,6 @@ const CopyPlugin = (config: CopyPluginConfig): BunPlugin => {
           });
         }
       }
-
     },
   };
 };
