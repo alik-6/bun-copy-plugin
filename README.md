@@ -40,7 +40,9 @@ build({
                 { from: 'app.tsx' }
             ],
             // Whether to verify the existence of 'from' before copying. If set to true, the plugin will exit if the source file or directory doesn't exist.
-            verify: true 
+            verify: true,
+            // if to show  plugin's logs or not
+            verbose: false,
         })
     ]
 }).catch(error => console.error(error))

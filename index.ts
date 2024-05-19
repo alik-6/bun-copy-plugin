@@ -83,9 +83,9 @@ const CopyPlugin = (config: CopyPluginConfig): BunPlugin => {
         const isVerified = await verifyAssets(config.assets);
         if (!isVerified) {
           console.log(`Failed to verify assets.`);
+          return
         }
       }
-
       for (const asset of config.assets) {
         const to = asset.to ? asset.to : build.config.outdir ?? "dist/";
         if (!asset.from.endsWith("/")) {
@@ -97,6 +97,7 @@ const CopyPlugin = (config: CopyPluginConfig): BunPlugin => {
           });
         }
       }
+
     },
   };
 };
