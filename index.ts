@@ -1,79 +1,102 @@
-import { type BunPlugin, type PluginBuilder } from "bun";
 import { exists, mkdir, readdir } from "node:fs/promises";
 import { join, parse } from "node:path";
 import type { Dirent } from "node:fs";
+import type { BunPlugin } from "bun";
 
-export type CopyPluginConfig = {
-  assets: { from: string; to?: string }[];
+export interface AssetConfig {
+  from: string;
+  to?: string;
+}
+
+export interface CopyPluginConfig {
+  assets: AssetConfig[];
   verify: boolean;
+  verbose: boolean;
+}
+
+let verbose = false;
+
+const verboseLog = (message: any) => {
+  if (verbose) {
+    console.log(message);
+  }
 };
 
-export const verifyAssets = async (assets: CopyPluginConfig["assets"]) => {
-  const assetChecks = assets.map(
-    async (asset) => asset.from && (await exists(asset.from))
-  );
+export const verifyAssets = async (assets: AssetConfig[]): Promise<boolean> => {
+  const assetChecks = assets.map(async (asset) => ({
+    verified: asset.from && (await exists(asset.from)),
+    asset: asset,
+  }));
 
   const results = await Promise.all(assetChecks);
-  return results.every((result) => result);
-};
-
-export const handleFile = (asset: { to: string; from: string }) => {
-  const file = parse(asset.from);
-  if (asset.to.endsWith("/")) asset.to += `/${file.base}`;
-  Bun.write(asset.to, Bun.file(asset.from)).catch((e) => console.error(e));
-};
-
-export const handleDir = (asset: { to: string; from: string }) => {
-  exists(asset.to).then(async (exists) => {
-    if (!exists) await mkdir(asset.to!, { recursive: true });
-    readdir(asset.from, { withFileTypes: true }).then((files: Dirent[]) => {
-      const promises: readonly Promise<void>[] = files.map(async (file) => {
-        const to = join(asset.to, file.name);
-        const from = join(asset.from!, file.name);
-        if (file.isDirectory()) {
-          handleDir({ to, from });
-        } else {
-          handleFile({ to, from });
-        }
-      });
-      Promise.all(promises).then(() => {});
-    });
+  return results.every((result) => {
+    if (!result.verified) verboseLog(`Failed to verify ${result.asset.from}`);
+    return result.verified;
   });
 };
 
+export const handleFile = async (asset: AssetConfig): Promise<void> => {
+  const file = parse(asset.from);
+  const to = asset.to?.endsWith("/") ? asset.to + file.base : asset.to ?? "";
+  try {
+    await Bun.write(to, Bun.file(asset.from));
+    verboseLog(`Copied file ${file.base} ${asset.from} => ${to}`);
+  } catch (error) {
+    console.error(error);
+  }
+};
+
+export const handleDir = async (asset: AssetConfig): Promise<void> => {
+  try {
+    const doesExists = await exists(asset.to);
+    if (!doesExists) await mkdir(asset.to!, { recursive: true });
+    const files = await readdir(asset.from, { withFileTypes: true });
+    await Promise.all(
+      files.map(async (file: Dirent) => {
+        const to = join(asset.to!, file.name);
+        const from = join(asset.from, file.name);
+        if (file.isDirectory()) {
+          await handleDir({ to, from });
+        } else {
+          await handleFile({ to, from });
+        }
+      })
+    );
+  } catch (error) {
+    console.error(error);
+  }
+};
 /**
  * @description A utility plugin for copying files and directories during the build process using Bun.
  * @param {CopyPluginConfig} config - The configuration object for the Copy Plugin.
  * @returns {BunPlugin} - The Bun plugin instance.
  */
-
 const CopyPlugin = (config: CopyPluginConfig): BunPlugin => {
   return {
     target: undefined,
     name: "@alik6/bun-copy-plugin",
     async setup(build) {
+      if (config.verbose) {
+        verbose = true;
+      }
       if (config.verify) {
-        try {
-          const isVerified = await verifyAssets(config.assets);
-          if (!isVerified) {
-            console.log(`Failed to verify assets.`);
-          }
-        }
-        catch (e) {
-          console.error(e)
+        const isVerified = await verifyAssets(config.assets);
+        if (!isVerified) {
+          console.log(`Failed to verify assets.`);
         }
       }
-      config.assets.forEach((asset) => {
+
+      for (const asset of config.assets) {
         const to = asset.to ? asset.to : build.config.outdir ?? "dist/";
         if (!asset.from.endsWith("/")) {
-          handleFile({ from: asset.from, to: to });
+          await handleFile({ from: asset.from, to });
         } else {
-          handleDir({
-            to: to,
+          await handleDir({
+            to,
             from: asset.from,
           });
         }
-      });
+      }
     },
   };
 };
